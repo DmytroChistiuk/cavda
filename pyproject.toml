@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cavda"
+version = "0.1.0"
+description = "CLI AI Video Downloader App — allow-list-only, stateless, no DRM/paywall bypass."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["cli", "yt-dlp", "claude", "allowlist"]
+classifiers = [
+    "Environment :: Console",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Multimedia :: Video",
+]
+
+# One external dependency per job (plan §3, §6). No persistence layer, no cache,
+# no retry library, no auth library — those subsystems do not exist here.
+dependencies = [
+    "anthropic>=0.75",  # Claude: structured output + web_search with allowed_domains
+    "httpx>=0.27",      # one synchronous liveness check per candidate
+    "pyyaml>=6.0",      # human-editable allow-list
+    "yt-dlp>=2024.1.1", # invoked as a subprocess, never as a shell string
+]
+
+[project.scripts]
+cavda = "cavda.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]

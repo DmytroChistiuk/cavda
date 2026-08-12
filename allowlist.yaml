@@ -1,0 +1,43 @@
+# allowlist.yaml — the ONLY list of domains CAVDA will ever treat as legitimate.
+#
+# Format
+# ------
+#   domains:
+#     - <bare domain>        # e.g. archive.org
+#
+# Rules the code enforces (see src/cavda/allowlist.py):
+#   * One bare domain per line. No scheme, no path, no port, no wildcard.
+#       archive.org          -> OK
+#       https://archive.org  -> wrong, drop the scheme
+#       *.archive.org        -> wrong, a bare domain already covers subdomains
+#   * A listed domain matches itself and any true subdomain:
+#       archive.org  matches  archive.org, web.archive.org
+#       archive.org  does NOT match  evil-archive.org, archive.org.attacker.com
+#     Matching is on the parsed hostname, never a substring, so lookalike
+#     domains cannot sneak through.
+#   * Only http/https URLs are ever considered, and URLs containing credentials
+#     (https://user:pass@host/) are rejected before matching.
+#   * This list is passed straight to Claude's web_search tool as
+#     `allowed_domains`, so the search itself is restricted server-side, and
+#     every URL that comes back is re-checked locally afterwards.
+#
+# You are responsible for what you put here. Only add domains you have the
+# legal right to download from: public-domain archives, open-licence catalogues,
+# official broadcaster channels, or platforms you hold a licence for. CAVDA has
+# no way to judge that for you — an entry here is your assertion, not a fact.
+#
+# Editing this file is the only way to change what CAVDA can reach. The app
+# never writes to it, and keeps no other state between runs.
+
+domains:
+  # Public-domain and openly licensed media archive.
+  - archive.org
+
+  # Placeholder — replace with a platform you actually hold a licence for.
+  # (.example is a reserved TLD, so this resolves nowhere until you change it.)
+  - your-licensed-platform.example
+
+  # Example of a narrower intent: only add a large general-purpose host if you
+  # will restrict yourself to official broadcaster / rights-holder channels on
+  # it. CAVDA matches on domain only — it cannot tell one channel from another.
+  # - youtube.com
