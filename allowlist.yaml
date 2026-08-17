@@ -15,8 +15,7 @@
 #       archive.org  does NOT match  evil-archive.org, archive.org.attacker.com
 #     Matching is on the parsed hostname, never a substring, so lookalike
 #     domains cannot sneak through.
-#   * Only http/https URLs are ever considered, and URLs containing credentials
-#     (https://user:pass@host/) are rejected before matching.
+#   * Only http/https URLs are ever considered
 #   * This list is passed straight to Claude's web_search tool as
 #     `allowed_domains`, so the search itself is restricted server-side, and
 #     every URL that comes back is re-checked locally afterwards.
@@ -30,14 +29,9 @@
 # never writes to it, and keeps no other state between runs.
 
 domains:
-  # Public-domain and openly licensed media archive.
-  - archive.org
+# Public-domain and openly licensed media archive.
+#  - iq.com
+#  - zdf.de
+#  - svtplay.se
+#  - tubitv.com
 
-  # Placeholder — replace with a platform you actually hold a licence for.
-  # (.example is a reserved TLD, so this resolves nowhere until you change it.)
-  - your-licensed-platform.example
-
-  # Example of a narrower intent: only add a large general-purpose host if you
-  # will restrict yourself to official broadcaster / rights-holder channels on
-  # it. CAVDA matches on domain only — it cannot tell one channel from another.
-  # - youtube.com

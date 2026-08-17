@@ -2,7 +2,7 @@
 
 A deliberately thin, stateless pipeline:
 
-    intent_parser -> source_resolver -> verifier -> confirm -> downloader
+    intent_parser -> source_resolver -> confirm -> downloader
 
 Nothing is persisted between runs: no database, no config writes, no history
 log, no credential store, no cache. The only file the app ever reads is the

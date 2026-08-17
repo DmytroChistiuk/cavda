@@ -1,23 +1,18 @@
-"""Orchestration only (plan §5.8).
-
-``main()`` is the architecture diagram in code form: five linear stages, no
-framework magic, readable top to bottom. It catches ``AppError`` subclasses and
-prints a clean message; anything else bubbles up with a full traceback, because
-a bug should not be mistaken for a handled failure.
-"""
-
 from __future__ import annotations
 
 import argparse
 import sys
 
+from cavda.dto.errors import AppError
+from cavda.dto.models import DownloadResult
+from cavda.service.confirm import confirm_with_user
+from cavda.service.downloader import download, DEFAULT_OUTPUT_DIR
+from cavda.service.intent_parser import parse_intent
+from cavda.service.source_resolver import resolve_sources
+from cavda.util.allowlist import DEFAULT_ALLOWLIST_PATH, load_allowlist
 from . import __version__
-from .allowlist import DEFAULT_ALLOWLIST_PATH, load_allowlist
-from .confirm import confirm_with_user
-from .downloader import DEFAULT_OUTPUT_DIR
-from .models import AppError, DownloadResult
 
-__all__ = ["main", "parse_args", "report"]
+__all__ = ["main"]
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -35,15 +30,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
-        "prompt",
-        nargs="?",
-        help='What you are looking for, e.g. "Night of the Living Dead 1968 in 1080p".',
-    )
-    parser.add_argument(
         "--prompt",
-        dest="prompt_flag",
+        dest="prompt",
         metavar="TEXT",
-        help="Same as the positional argument.",
+        help="What you are looking for",
     )
     parser.add_argument(
         "--allowlist",
@@ -57,63 +47,36 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         metavar="DIR",
         help=f"Where yt-dlp writes the file (default: ./{DEFAULT_OUTPUT_DIR}).",
     )
-    parser.add_argument(
-        "--mock",
-        action="store_true",
-        help=(
-            "Run the pipeline with offline stand-ins for the Claude, HTTP and "
-            "yt-dlp calls. No API key, no network, no download."
-        ),
-    )
     parser.add_argument("--version", action="version", version=f"cavda {__version__}")
 
     args = parser.parse_args(argv)
-    args.prompt = args.prompt or args.prompt_flag
-    if not args.prompt or not args.prompt.strip():
-        parser.error("give a prompt, either positionally or with --prompt")
+    args.prompt = args.prompt.strip()
+    if not args.prompt:
+        parser.error("Prompt not found, please use --prompt to setup it")
     return args
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
 
-    if args.mock:
-        from .mocks import mock_download as download
-        from .mocks import mock_parse_intent as parse_intent
-        from .mocks import mock_resolve_sources as resolve_sources
-        from .mocks import mock_verify as verify
-
-        print("[mock mode] no API calls, no HTTP requests, no downloads.\n")
-    else:
-        from .downloader import download
-        from .intent_parser import parse_intent
-        from .source_resolver import resolve_sources
-        from .verifier import verify
-
     try:
         allowlist = load_allowlist(args.allowlist)
         print(f"Allow-list: {', '.join(sorted(allowlist))}")
 
-        intent = parse_intent(args.prompt)  # 5.3
+        intent = parse_intent(args.prompt)
         print(f"Looking for: {_describe(intent)}")
 
-        candidates = resolve_sources(intent, allowlist)  # 5.4
+        candidates = resolve_sources(intent, allowlist)
         if not candidates:
-            print("Claude proposed no cited candidates on allowed domains.")
+            print("Claude proposed no candidates on given prompt.")
             return 1
 
-        print(f"Verifying {len(candidates)} candidate(s)...")
-        verified = [v for c in candidates if (v := verify(c, allowlist))]  # 5.5
-        if not verified:
-            print("No verifiable sources found on allowed domains.")
-            return 1
-
-        chosen = confirm_with_user(verified)  # 5.6
+        chosen = confirm_with_user(candidates)
         if chosen is None:
             print("Cancelled.")
             return 0
 
-        result = download(chosen, intent, args.output_dir)  # 5.7
+        result = download(chosen, intent, args.output_dir)
         report(result)
         return 0 if result.success else 1
 
@@ -124,7 +87,6 @@ def main(argv: list[str] | None = None) -> int:
 
 def report(result: DownloadResult) -> None:
     """Print the outcome. yt-dlp's own error text is passed through unchanged."""
-    print()
     if result.success:
         print(f"Done. Saved to: {result.output_path}")
     else:

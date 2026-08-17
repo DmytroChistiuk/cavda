@@ -17,13 +17,10 @@ classifiers = [
     "Topic :: Multimedia :: Video",
 ]
 
-# One external dependency per job (plan §3, §6). No persistence layer, no cache,
-# no retry library, no auth library — those subsystems do not exist here.
 dependencies = [
-    "anthropic>=0.75",  # Claude: structured output + web_search with allowed_domains
-    "httpx>=0.27",      # one synchronous liveness check per candidate
-    "pyyaml>=6.0",      # human-editable allow-list
-    "yt-dlp>=2024.1.1", # invoked as a subprocess, never as a shell string
+    "anthropic>=0.75",
+    "pyyaml>=6.0",
+    "yt-dlp>=2024.1.1",
 ]
 
 [project.scripts]

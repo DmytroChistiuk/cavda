@@ -13,29 +13,24 @@ from urllib.parse import urlsplit
 
 import yaml
 
-from .models import AppError
+from cavda.dto.errors import AppError
 
 __all__ = ["load_allowlist", "is_allowed", "domain_of", "DEFAULT_ALLOWLIST_PATH"]
 
 DEFAULT_ALLOWLIST_PATH = "allowlist.yaml"
-
-# Only these schemes are ever considered. No file://, no ftp://, no data:.
 _ALLOWED_SCHEMES = frozenset({"http", "https"})
 
 
 def load_allowlist(path: str = DEFAULT_ALLOWLIST_PATH) -> set[str]:
     """Read the YAML allow-list and return a normalised set of domains.
+    Raises `AppError` if the file is missing, unreadable, malformed, or empty."""
 
-    Raises ``AppError`` if the file is missing, unreadable, malformed, or empty.
-    An empty allow-list is an error rather than an implicit "allow nothing"
-    because a silently empty list looks like a working app that finds nothing.
-    """
     file_path = Path(path).expanduser()
     if not file_path.is_file():
         raise AppError(
             f"Allow-list not found at {file_path}. "
             "CAVDA only searches domains you have explicitly listed; "
-            "create the file or pass --allowlist /path/to/allowlist.yaml."
+            "create the default allowlist.yaml file in project root or pass --allowlist /path/to/allowlist.yaml."
         )
 
     try:
@@ -68,13 +63,14 @@ def load_allowlist(path: str = DEFAULT_ALLOWLIST_PATH) -> set[str]:
 
 
 def is_allowed(url: str, allowlist: set[str]) -> bool:
-    """True if ``url``'s host is an allow-listed domain or a subdomain of one."""
+    """Check is url host is an allow-listed domain or a subdomain of one."""
     host = domain_of(url)
     if host is None:
         return False
     return any(host == d or host.endswith("." + d) for d in allowlist)
 
 
+# TODO: Remove if it is not needed {is_allowed, domain_of}
 def domain_of(url: str) -> str | None:
     """Return the normalised host of an http(s) URL, or None if it is unusable.
 
@@ -88,8 +84,6 @@ def domain_of(url: str) -> str | None:
         return None
 
     if parts.scheme.lower() not in _ALLOWED_SCHEMES:
-        return None
-    if "@" in parts.netloc:  # userinfo — never accepted
         return None
 
     try:
